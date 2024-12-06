@@ -6,7 +6,17 @@ import * as dat from "https://cdn.skypack.dev/lil-gui@0.16.0";
 // GLTF Loader for loading 3D models
 import { GLTFLoader } from "https://cdn.skypack.dev/three@0.129.0/examples/jsm/loaders/GLTFLoader.js";import { RoundedBoxGeometry } from "https://cdn.skypack.dev/three@0.129.0/examples/jsm/geometries/RoundedBoxGeometry.js";
 
-
+// Parameters for the cacti
+const parameters = {
+    numCacti: 8, // Number of cacti
+    spawnDelay: 500*3, // Delay in milliseconds between spawns
+    behavior: 1, // 0 for chilling, 1 is for walking, and 2 is for running
+    timeOfDay: "Day", // Options: "Day" or "Night"
+    ambientLightIntensity: 0.8,
+    directionalLightIntensity: 0.6,
+    skyColorDay: 0x87ceeb, // Light blue for day
+    skyColorNight: 0x000033, // Dark blue for night
+};
 
 /**
  * Base
@@ -31,10 +41,12 @@ const scene = new THREE.Scene()
 const gltfLoader =  new GLTFLoader()
 
 let mixer = null
+let loadedGltf = null; // Global variable to store GLTF data
 
 gltfLoader.load(
     './models/Fox/glTF-Binary/Fox.glb',
     (gltf) => {
+        loadedGltf = gltf; // Store the loaded GLTF data
         gltf.scene.scale.set(0.025, 0.025, 0.025)
         // while(gltf.scene.children.length) {
         //     scene.add(gltf.scene.children[0])
@@ -47,7 +59,7 @@ gltfLoader.load(
         });
         scene.add(gltf.scene)
         mixer = new THREE.AnimationMixer(gltf.scene)
-        const action = mixer.clipAction(gltf.animations[1])
+        const action = mixer.clipAction(gltf.animations[parameters.behavior])
         action.play()
     }
 )
@@ -74,6 +86,9 @@ sandColorTexture.wrapT = THREE.RepeatWrapping
 sandAmbientOcclusionTexture.wrapT = THREE.RepeatWrapping
 sandNormalTexture.wrapT = THREE.RepeatWrapping
 sandDisplacementTexture.wrapT = THREE.RepeatWrapping
+
+sandColorTexture.needsUpdate = true;
+
 
 const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(20, 20),
@@ -117,6 +132,32 @@ directionalLight.shadow.camera.right = 10
 directionalLight.shadow.camera.bottom = - 10
 directionalLight.position.set(10, 10, 10)
 scene.add(directionalLight)
+
+const updateDayNight = () => {
+    if (parameters.timeOfDay === "Day") {
+        // Day settings
+        ambientLight.intensity = parameters.ambientLightIntensity;
+        directionalLight.intensity = parameters.directionalLightIntensity;
+        scene.background = new THREE.Color(parameters.skyColorDay);
+    } else {
+        // Night settings
+        ambientLight.intensity = parameters.ambientLightIntensity * 0.3; // Dimmer ambient light
+        directionalLight.intensity = parameters.directionalLightIntensity * 0.2; // Dimmer directional light
+        scene.background = new THREE.Color(parameters.skyColorNight);
+    }
+};
+
+const dayNightFolder = gui.addFolder("Day and Night");
+
+// Dropdown to toggle time of day
+dayNightFolder
+    .add(parameters, "timeOfDay", ["Day", "Night"])
+    .name("Time of Day")
+    .onChange(updateDayNight);
+
+// Open the folder by default
+dayNightFolder.open();
+
 
 /**
  * Sizes
@@ -186,8 +227,56 @@ const cactusMaterial = new THREE.MeshStandardMaterial(
 // cactus.castShadow = true;
 // cactus.position.set(7, 0.6, 10); // Start position
 // scene.add(cactus);
+// Create a GUI folder for behavior controls
+let cactusSpeed = 2; // Speed of cactus and floor movement (units per second)
+const behaviorFolder = gui.addFolder("Behavior");
+
+// Function to update cactus speed and fox animation
+const updateBehavior = (behavior) => {
+    parameters.behavior = behavior;
+
+    // Adjust cactus speed based on behavior
+    switch (behavior) {
+        case 0: // Chilling
+            cactusSpeed = 0; // No movement
+            break;
+        case 1: // Walking
+            cactusSpeed = 2; // Moderate speed
+            break;
+        case 2: // Running
+            cactusSpeed = 4; // Fast speed
+            break;
+    }
+
+    // Update fox animation
+    if (mixer && loadedGltf) {
+        mixer.stopAllAction(); // Stop all current actions
+        const animationClip = loadedGltf.animations[parameters.behavior]; // Get the animation for the current behavior
+
+        if (animationClip) {
+            const action = mixer.clipAction(animationClip); // Create a new action
+            action.reset(); // Reset the animation to start
+            action.play(); // Play the new action
+            action.setEffectiveWeight(1); // Ensure it's fully applied
+        } else {
+            console.error(`No animation found for behavior index: ${parameters.behavior}`);
+        }
+    }
+
+    console.log(
+        `Behavior set to: ${behavior === 0 ? 'Chilling' : behavior === 1 ? 'Walking' : 'Running'}`
+    );
+};
 
 
+// Default behavior: Walking
+updateBehavior(1);
+
+// Add GUI buttons for behaviors
+behaviorFolder.add({ chilling: () => updateBehavior(0) }, "chilling").name("Chilling");
+behaviorFolder.add({ walking: () => updateBehavior(1) }, "walking").name("Walking");
+behaviorFolder.add({ running: () => updateBehavior(2) }, "running").name("Running");
+behaviorFolder.open(); // Open the folder by default
 // Number of cacti
 const numCacti = 8; // Adjust this to control how many cacti travel
 
@@ -210,7 +299,7 @@ const cacti = [];
 // Function to reset a cactus position
 const resetCactusPosition = (cactus) => {
     // Position the cactus at a random Z position further ahead
-    cactus.position.z = 10 + Math.random() * 10; // Reset z-position within a range
+    cactus.position.z = 10 // + Math.random() * 10; // Reset z-position within a range
     
     // Ensure the cactus is placed away from the center (x-axis)
     let cactusX = null;
@@ -305,19 +394,31 @@ const createCactus = () => {
     return cactus;
 };
 
-// Create and store multiple cacti
-for (let i = 0; i < numCacti; i++) {
-    // console.log(`Cactus ${i}`); // Log position for each cactus
-    const cactus = createCactus();
-    cacti.push(cactus);
-}
+// // Create and store multiple cacti
+// for (let i = 0; i < parameters.numCacti; i++) {
+//     // console.log(`Cactus ${i}`); // Log position for each cactus
+//     const cactus = createCactus();
+//     cacti.push(cactus);
+// }
+// Create and store multiple cacti with a delay
+const createCactiWithDelay = (count, delay) => {
+    for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+            const cactus = createCactus(); // Create a single cactus
+            cacti.push(cactus); // Store the cactus in the array
+            console.log(`Cactus ${i} added at ${Date.now()}`); // Debug log
+        }, i * delay); // Delay increases with each iteration
+    }
+};
 
+
+// Call the function to create cacti with delay
+createCactiWithDelay(parameters.numCacti, parameters.spawnDelay);
 
 /**
  * Animate
  */
 const clock = new THREE.Clock()
-const cactusSpeed = 2; // Speed of cactus and floor movement (units per second)
 
 const tick = () => {
     const deltaTime = clock.getDelta();
