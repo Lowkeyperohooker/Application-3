@@ -4,7 +4,8 @@ import { OrbitControls } from "https://cdn.skypack.dev/three@0.129.0/examples/js
 // Lightweight GUI for web development
 import * as dat from "https://cdn.skypack.dev/lil-gui@0.16.0";
 // GLTF Loader for loading 3D models
-import { GLTFLoader } from "https://cdn.skypack.dev/three@0.129.0/examples/jsm/loaders/GLTFLoader.js";import { RoundedBoxGeometry } from "https://cdn.skypack.dev/three@0.129.0/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { GLTFLoader } from "https://cdn.skypack.dev/three@0.129.0/examples/jsm/loaders/GLTFLoader.js";
+import { RoundedBoxGeometry } from "https://cdn.skypack.dev/three@0.129.0/examples/jsm/geometries/RoundedBoxGeometry.js";
 
 // Parameters for the cacti
 const parameters = {
@@ -34,6 +35,32 @@ const canvas = document.querySelector('canvas.webgl')
 
 // Scene
 const scene = new THREE.Scene()
+
+/**
+ * Stars
+ */
+const starsGeometry = new THREE.BufferGeometry()
+const starsCount = 500
+
+const starsPosition = new Float32Array(starsCount * 3)
+
+for(let i = 0; i < starsCount * 3; i++) {
+    starsPosition = (Math.random() -0.5) * 10 
+}
+starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsPosition, 3))
+
+const starsMaterial = new THREE.PointsMaterial({
+    size: 0.02,
+    sizeAttenuation: true
+})
+
+const starTexture = textureLoader.load('./texture/particles/8.png')
+starsMaterial.map = starTexture
+starsMaterial.depthWrite = false
+starsMaterial.blending = THREE.AdditiveBlending
+
+const stars = new THREE.Points(starsGeometry, starsMaterial)
+scene.add(stars)
 
 /**
  * Models
@@ -189,7 +216,7 @@ window.addEventListener('resize', () =>
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.set(5, 3, 5)
+camera.position.set(2, 2, 2)
 scene.add(camera)
 
 // Controls
