@@ -7,12 +7,21 @@ import * as dat from "https://cdn.skypack.dev/lil-gui@0.16.0";
 import { GLTFLoader } from "https://cdn.skypack.dev/three@0.129.0/examples/jsm/loaders/GLTFLoader.js";
 import { RoundedBoxGeometry } from "https://cdn.skypack.dev/three@0.129.0/examples/jsm/geometries/RoundedBoxGeometry.js";
 
-// Parameters for the cacti
+// Parameters 
 const parameters = {
     numCacti: 8, // Number of cacti
     spawnDelay: 500*3, // Delay in milliseconds between spawns
     behavior: 1, // 0 for chilling, 1 is for walking, and 2 is for running
     timeOfDay: "Day", // Options: "Day" or "Night"
+    shiftDay: () => {
+        if(parameters.timeOfDay === "Day") {
+            parameters.timeOfDay = 'Night'
+            switchToNight()
+        } else {
+            parameters.timeOfDay = "Day"
+            switchToDay()
+        }
+    },
     ambientLightIntensity: 0.8,
     directionalLightIntensity: 0.6,
     skyColorDay: 0x87ceeb, // Light blue for day
@@ -45,16 +54,16 @@ const starsCount = 500
 const starsPosition = new Float32Array(starsCount * 3)
 
 for(let i = 0; i < starsCount * 3; i++) {
-    starsPosition = (Math.random() -0.5) * 10 
+    starsPosition[i] = (Math.random() -0.5) * 50 
 }
 starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsPosition, 3))
 
 const starsMaterial = new THREE.PointsMaterial({
-    size: 0.02,
+    size: 0.1,
     sizeAttenuation: true
 })
 
-const starTexture = textureLoader.load('./texture/particles/8.png')
+const starTexture = textureLoader.load('./textures/particles/8.png')
 starsMaterial.map = starTexture
 starsMaterial.depthWrite = false
 starsMaterial.blending = THREE.AdditiveBlending
@@ -75,9 +84,6 @@ gltfLoader.load(
     (gltf) => {
         loadedGltf = gltf; // Store the loaded GLTF data
         gltf.scene.scale.set(0.025, 0.025, 0.025)
-        // while(gltf.scene.children.length) {
-        //     scene.add(gltf.scene.children[0])
-        // }
         gltf.scene.traverse((child) => {
             if (child.isMesh) {
                 child.castShadow = true; // Model casts shadows
@@ -98,7 +104,6 @@ const sandColorTexture = textureLoader.load('./textures/sand/COLOR.jpg')
 const sandNormalTexture = textureLoader.load('./textures/sand/NRM.jpg')
 const sandAmbientOcclusionTexture = textureLoader.load('./textures/sand/OCC.jpg')
 const sandDisplacementTexture = textureLoader.load('./textures/sand/DISP.tiff')
-// const sandSpecularTexture = textureLoader.load('./textures/sand/SPEC.jpg')
 
 sandColorTexture.repeat.set(7, 7)
 sandAmbientOcclusionTexture.repeat.set(7, 7)
@@ -119,11 +124,6 @@ sandColorTexture.needsUpdate = true;
 
 const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(20, 20),
-    // new THREE.MeshStandardMaterial({
-    //     color: '#444444',
-    //     metalness: 0,
-    //     roughness: 0.5
-    // })
     
     new THREE.MeshStandardMaterial({
         map: sandColorTexture, // Base color texture
@@ -150,7 +150,7 @@ scene.add(ambientLight)
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6)
 directionalLight.castShadow = true
-directionalLight.shadow.mapSize.set(2048, 2048)
+directionalLight.shadow.mapSize.set(1024, 1024)
 directionalLight.shadow.camera.near = 0.5
 directionalLight.shadow.camera.far = 50
 directionalLight.shadow.camera.left = - 10
@@ -161,27 +161,37 @@ directionalLight.position.set(10, 10, 10)
 scene.add(directionalLight)
 
 const updateDayNight = () => {
-    if (parameters.timeOfDay === "Day") {
-        // Day settings
-        ambientLight.intensity = parameters.ambientLightIntensity;
-        directionalLight.intensity = parameters.directionalLightIntensity;
-        scene.background = new THREE.Color(parameters.skyColorDay);
+    if (parameters.timeOfDay === "Night") {
     } else {
-        // Night settings
-        ambientLight.intensity = parameters.ambientLightIntensity * 0.3; // Dimmer ambient light
-        directionalLight.intensity = parameters.directionalLightIntensity * 0.2; // Dimmer directional light
-        scene.background = new THREE.Color(parameters.skyColorNight);
     }
 };
 
-updateDayNight()
+const switchToDay = () => {
+    parameters.timeOfDay = 'Day'
+    // Day settings
+    ambientLight.intensity = parameters.ambientLightIntensity;
+    directionalLight.intensity = parameters.directionalLightIntensity;
+    scene.background = new THREE.Color(parameters.skyColorDay);
+    stars.visible = false
+}
 
-const dayNightFolder = gui.addFolder("Day and Night");
+const switchToNight = () => {
+    // Night settings
+    parameters.timeOfDay = 'Night'
+    ambientLight.intensity = parameters.ambientLightIntensity * 0.3; // Dimmer ambient light
+    directionalLight.intensity = parameters.directionalLightIntensity * 0.2; // Dimmer directional light
+    scene.background = new THREE.Color(parameters.skyColorNight);
+    stars.visible = true
+}
+
+switchToDay()
+
+const dayNightFolder = gui.addFolder("Day/Night");
 
 // Dropdown to toggle time of day
 dayNightFolder
-    .add(parameters, "timeOfDay", ["Day", "Night"])
-    .name("Time of Day")
+    .add(parameters, "shiftDay")
+    .name("day/night")
     .onChange(updateDayNight);
 
 // Open the folder by default
@@ -216,7 +226,7 @@ window.addEventListener('resize', () =>
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.set(2, 2, 2)
+camera.position.set(2, 3, 2)
 scene.add(camera)
 
 // Controls
@@ -236,27 +246,6 @@ renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
 
-/**
- * Cactus Placeholder
- */
-// const cactusTexture = textureLoader.load('./textures/cactus_placeholder.jpg'); // Placeholder texture for cactus
-const cactusMaterial = new THREE.MeshStandardMaterial(
-    // { map: cactusTexture }
-);
-
-// const ghost1 = new THREE.PointLight(0xff00ff, 2, 3)
-// ghost1.position.set(4, 0.5, 0)
-// scene.add(ghost1)
-// const pointLightHelper1 = new THREE.PointLightHelper(ghost1, 0.2);
-// scene.add(pointLightHelper1)
-
-
-// const cactusGeometry = new THREE.BoxGeometry(0.5, 1, 0.5); // Adjust size as needed
-// const cactus = new THREE.Mesh(cactusGeometry, cactusMaterial);
-// cactus.castShadow = true;
-// cactus.position.set(7, 0.6, 10); // Start position
-// scene.add(cactus);
-// Create a GUI folder for behavior controls
 let cactusSpeed = 2; // Speed of cactus and floor movement (units per second)
 const behaviorFolder = gui.addFolder("Behavior");
 
@@ -312,19 +301,6 @@ const numCacti = 8; // Adjust this to control how many cacti travel
 // Array to hold cacti
 const cacti = [];
 
-// // Function to reset a cactus position
-// const resetCactusPosition = (cactus) => {
-//     cactus.position.z = 10 + Math.random() * 5; // Reset z position further ahead
-//     let cactusX = null;
-
-//     // Ensure cactus is far enough from the center
-//     do {
-//         cactusX = (Math.random() - 0.5) * 10;
-//     } while (Math.abs(cactusX) < 4);
-
-//     cactus.position.x = cactusX; // Assign new x position
-//     cactus.position.y = 0.5
-// };
 // Function to reset a cactus position
 const resetCactusPosition = (cactus) => {
     // Position the cactus at a random Z position further ahead
@@ -372,22 +348,9 @@ cactusHeightTexture.wrapT = THREE.RepeatWrapping;
 cactusRoughnessTexture.wrapS = THREE.RepeatWrapping;
 cactusRoughnessTexture.wrapT = THREE.RepeatWrapping;
 
-// Repeat for other textures if needed
-
-// Repeat for other textures if needed
-
 
 const createCactus = () => {
     const cactusGeometry = new RoundedBoxGeometry(1, 2, 1, 8, 0.2);
-    // Creates a rounded box:
-    // - 1 unit wide (X-axis)
-    // - 2 units tall (Y-axis)
-    // - 1 unit deep (Z-axis)
-    // - 8 segments for smooth corners
-    // - Rounded corners with a radius of 0.2
-
-    // const cactusGeometry = new RoundedBoxGeometry(0.5, 1, 0.5, 8, 0.08); // Smooth edges
-    // const cactusGeometry = new THREE.BoxGeometry(0.5, 1, 0.5); // Adjust size as needed
     // Updated material with textures
     const cactusMaterial = new THREE.MeshStandardMaterial({
         map: cactusColorTexture,               // Base color texture for cactus
@@ -413,23 +376,11 @@ const createCactus = () => {
 
     // Random initial position
     resetCactusPosition(cactus)
-    // cactus.position.set(
-    //     (Math.random() - 0.5) * 10, // Random x position
-    //     0.5, // Fixed y position
-    //     10 + Math.random() * 5 // Random initial z position further ahead
-    // );
 
     scene.add(cactus);
     return cactus;
 };
 
-// // Create and store multiple cacti
-// for (let i = 0; i < parameters.numCacti; i++) {
-//     // console.log(`Cactus ${i}`); // Log position for each cactus
-//     const cactus = createCactus();
-//     cacti.push(cactus);
-// }
-// Create and store multiple cacti with a delay
 const createCactiWithDelay = (count, delay) => {
     for (let i = 0; i < count; i++) {
         setTimeout(() => {
