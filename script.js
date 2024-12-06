@@ -147,6 +147,8 @@ const updateDayNight = () => {
     }
 };
 
+updateDayNight()
+
 const dayNightFolder = gui.addFolder("Day and Night");
 
 // Dropdown to toggle time of day
