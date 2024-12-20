@@ -63,7 +63,7 @@ const starsMaterial = new THREE.PointsMaterial({
     sizeAttenuation: true
 })
 
-const starTexture = textureLoader.load('./textures/particles/8.png')
+const starTexture = textureLoader.load('./textures/particles/9.png')
 starsMaterial.map = starTexture
 starsMaterial.depthWrite = false
 starsMaterial.blending = THREE.AdditiveBlending
