@@ -49,7 +49,7 @@ const scene = new THREE.Scene()
  * Stars
  */
 const starsGeometry = new THREE.BufferGeometry()
-const starsCount = 500* 10
+const starsCount = 500* 5
 
 const starsPosition = new Float32Array(starsCount * 3)
 
