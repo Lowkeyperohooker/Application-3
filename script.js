@@ -59,7 +59,7 @@ for(let i = 0; i < starsCount * 3; i++) {
 starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsPosition, 3))
 
 const starsMaterial = new THREE.PointsMaterial({
-    size: 0.5,
+    size: 0.3,
     sizeAttenuation: true
 })
 
