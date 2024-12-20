@@ -49,7 +49,7 @@ const scene = new THREE.Scene()
  * Stars
  */
 const starsGeometry = new THREE.BufferGeometry()
-const starsCount = 500
+const starsCount = 500* 10
 
 const starsPosition = new Float32Array(starsCount * 3)
 
@@ -59,7 +59,7 @@ for(let i = 0; i < starsCount * 3; i++) {
 starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsPosition, 3))
 
 const starsMaterial = new THREE.PointsMaterial({
-    size: 0.1,
+    size: 0.5,
     sizeAttenuation: true
 })
 
