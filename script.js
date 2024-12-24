@@ -419,9 +419,9 @@ const tick = () => {
     const textureScale = 2.5; // Matches the texture repeat scale
     const textureMovement = cactusSpeed * deltaTime / textureScale; // Adjust offset based on the tiling scale
 
-    sandColorTexture.offset.y += textureMovement;
-    sandNormalTexture.offset.y += textureMovement;
-    sandAmbientOcclusionTexture.offset.y += textureMovement;
+    sandColorTexture.offset.y -= textureMovement;
+    sandNormalTexture.offset.y -= textureMovement;
+    sandAmbientOcclusionTexture.offset.y -= textureMovement;
 
     // Update Fox animation
     if (mixer) {
